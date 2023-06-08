@@ -1,4 +1,5 @@
 import { Action as Act, ActionContext, Module as Mod, Mutation as Mut, Payload, Store } from 'vuex'
+import { addPropertiesToObject } from './helpers'
 
 export interface MutationActionParams<M> {
   mutate?: (keyof Partial<M>)[]
@@ -7,10 +8,10 @@ export interface MutationActionParams<M> {
 }
 
 function mutationActionDecoratorFactory<T extends Object>(params: MutationActionParams<T>) {
-  return function(
+  return function (
     target: T,
     key: string | symbol,
-    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<Partial<T>>>
+    descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<Partial<T> | undefined>>
   ) {
     const module = target.constructor as Mod<T, any>
     if (!module.hasOwnProperty('mutations')) {
@@ -21,14 +22,18 @@ function mutationActionDecoratorFactory<T extends Object>(params: MutationAction
     }
     const mutactFunction = descriptor.value as (payload: any) => Promise<any>
 
-    const action: Act<typeof target, any> = async function(
+    const action: Act<typeof target, any> = async function (
       context: ActionContext<typeof target, any>,
       payload: Payload
     ) {
       try {
-        const actionPayload = await mutactFunction.call(context, payload)
+        const thisObj = { context }
+        addPropertiesToObject(thisObj, context.state)
+        addPropertiesToObject(thisObj, context.getters)
+        const actionPayload = await mutactFunction.call(thisObj, payload)
+        if (actionPayload === undefined) return
         context.commit(key as string, actionPayload)
-      } catch (e) {
+      } catch (e: any) {
         if (params.rawError) {
           throw e
         } else {
@@ -39,7 +44,7 @@ function mutationActionDecoratorFactory<T extends Object>(params: MutationAction
       }
     }
 
-    const mutation: Mut<typeof target> = function(
+    const mutation: Mut<typeof target> = function (
       state: typeof target | Store<T>,
       payload: Payload & { [k in keyof T]: any }
     ) {
@@ -88,12 +93,12 @@ export function MutationAction<T>(
 export function MutationAction<T, K, M extends K>(
   paramsOrTarget: MutationActionParams<T> | M,
   key?: string | symbol,
-  descriptor?: TypedPropertyDescriptor<(...args: any[]) => Promise<Partial<K>>>
+  descriptor?: TypedPropertyDescriptor<(...args: any[]) => Promise<Partial<K> | undefined>>
 ):
   | ((
       target: T,
       key: string | symbol,
-      descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<Partial<T>>>
+      descriptor: TypedPropertyDescriptor<(...args: any[]) => Promise<Partial<T> | undefined>>
     ) => void)
   | void {
   if (!key && !descriptor) {

@@ -8,6 +8,7 @@ Vue.use(Vuex)
 @Module
 class MyModule extends VuexModule {
   count: number = 0
+  anotherCount: number = 0
   fruit: string = 'Apple'
   vegetable: string | null = null
 
@@ -15,6 +16,12 @@ class MyModule extends VuexModule {
   @MutationAction({ mutate: ['count'] })
   async updateCount(newcount: number) {
     return { count: newcount }
+  }
+
+  @MutationAction
+  async updateAnotherCountConditionally({ newCount, shouldUpdate }: { newCount: number, shouldUpdate: boolean }) {
+    if (!shouldUpdate) return
+    return { anotherCount: newCount }
   }
 
   @MutationAction
@@ -42,6 +49,16 @@ class MyModule extends VuexModule {
 
     return {count: newcount}
   }
+
+  @MutationAction({ mutate: ['count'] })
+  async incrementCount() {
+    const newCount = this.count + 1
+    console.log("==================")
+    console.log("==================")
+    console.log("==================")
+    console.log(this)
+    return { count: newCount }
+  }
 }
 
 const store = new Vuex.Store({
@@ -60,13 +77,13 @@ describe('dispatching moduleaction works', () => {
 
     // try {
     //   await store.dispatch('updateCountButNoSuchPayload', '1337')
-    // } catch (e) {
+    // } catch (e: any) {
     //   expect(e.message).to.contain('ERR_MUTATE_PARAMS_NOT_IN_PAYLOAD')
     // }
 
     try {
       await store.dispatch('updateCountOnlyOnEven', 7)
-    } catch (e) {
+    } catch (e: any) {
       expect(e.message).to.contain('not an even number')
     }
   })
@@ -74,5 +91,22 @@ describe('dispatching moduleaction works', () => {
   it('should update fruitname', async function() {
     await store.dispatch('changeFruit', 'Guava')
     expect(store.state.mm.fruit).to.equal('Guava')
+  })
+
+  it('should be able to skip update', async function () {
+    expect(store.state.mm.anotherCount).to.equal(0)
+
+    await store.dispatch('updateAnotherCountConditionally', { newCount: 5, shouldUpdate: true })
+    expect(store.state.mm.anotherCount).to.equal(5)
+
+    await store.dispatch('updateAnotherCountConditionally', { newCount: 10, shouldUpdate: false })
+    expect(store.state.mm.anotherCount).to.equal(5)
+  })
+    
+  it('can access state', async function() {
+    await store.dispatch('updateCount', 0)
+    expect(store.state.mm.count).to.equal(0)
+    await store.dispatch('incrementCount')
+    expect(store.state.mm.count).to.equal(1)
   })
 })
