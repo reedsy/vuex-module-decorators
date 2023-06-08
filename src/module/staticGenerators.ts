@@ -13,7 +13,12 @@ export function staticStateGenerator<S extends Object>(
       if (['undefined', 'function'].indexOf(typeof (state as any)[key]) === -1) {
         Object.defineProperty(statics, key, {
           get() {
-            return statics.store.state[modOpt.name][key]
+            const path = modOpt.name.split('/')
+            let data = statics.store.state
+            for (let segment of path) {
+              data = data[segment]
+            }
+            return data[key]
           }
         })
       }
@@ -50,11 +55,11 @@ export function staticMutationGenerator<S>(
 ) {
   Object.keys(module.mutations as MutationTree<S>).forEach((key) => {
     if (module.namespaced) {
-      statics[key] = function(...args: any[]) {
+      statics[key] = function (...args: any[]) {
         statics.store.commit(`${modOpt.name}/${key}`, ...args)
       }
     } else {
-      statics[key] = function(...args: any[]) {
+      statics[key] = function (...args: any[]) {
         statics.store.commit(key, ...args)
       }
     }
@@ -68,11 +73,11 @@ export function staticActionGenerators<S>(
 ) {
   Object.keys(module.actions as ActionTree<S, any>).forEach((key) => {
     if (module.namespaced) {
-      statics[key] = async function(...args: any[]) {
+      statics[key] = async function (...args: any[]) {
         return statics.store.dispatch(`${modOpt.name}/${key}`, ...args)
       }
     } else {
-      statics[key] = async function(...args: any[]) {
+      statics[key] = async function (...args: any[]) {
         return statics.store.dispatch(key, ...args)
       }
     }

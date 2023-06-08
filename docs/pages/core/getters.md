@@ -30,3 +30,14 @@ export default {
   }
 }
 ```
+For Method-Style Access use vanilla vuex and return a function: 
+
+```typescript
+@Module
+export default class Vehicle extends VuexModule {
+  companies = []
+  get company() {
+    return (companyName: string) => { this.companies.find(company => company.name === companyName) };
+  }
+}
+```
