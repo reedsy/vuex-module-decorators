@@ -1,25 +1,32 @@
 name: Test
 
-on: [push]
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [16.x]
-
+    timeout-minutes: 10
     steps:
     - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
       with:
-        node-version: ${{ matrix.node-version }}
-    - name: npm test
-      run: |
-        npm install
-        npm test
-      env:
-        CI: true
+        # Use PAT instead of default Github token, because the default
+        # token deliberately will not trigger another workflow run
+        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '16.x'
+        registry-url: 'https://npm.pkg.github.com'
+    - name: Install
+      # Skip post-install to avoid malicious scripts stealing PAT
+      run: npm install
+    - name: Test
+      run: npm test
+    - name: Tag
+      if: ${{ github.ref == 'refs/heads/main' }}
+      run: ./tag.sh
