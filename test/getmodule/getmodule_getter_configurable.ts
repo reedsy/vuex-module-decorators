@@ -1,6 +1,4 @@
 import Vuex from 'vuex'
-import Vue from 'vue'
-Vue.use(Vuex)
 import { getModule, Module, VuexModule } from '../..'
 import { expect } from 'chai'
 
