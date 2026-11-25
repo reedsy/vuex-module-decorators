@@ -6,5 +6,5 @@ export interface ActionDecoratorParams {
     rawError?: boolean;
     root?: boolean;
 }
-export declare function Action<T, R>(target: T, key: string | symbol, descriptor: TypedPropertyDescriptor<(...args: any[]) => R>): void;
+export declare function Action<T, F extends (...args: any[]) => any>(target: T, key: string | symbol, descriptor: TypedPropertyDescriptor<F>): void;
 export declare function Action<T>(params: ActionDecoratorParams): MethodDecorator;
